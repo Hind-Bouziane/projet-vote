@@ -1,0 +1,108 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam shadowing false
+
+enum RoleUtilisateur {
+  admin
+  student
+}
+
+enum StatutScrutin {
+  brouillon
+  ouvert
+  clos
+}
+
+enum TypeEligibilite {
+  tous
+  filiere
+  classe
+}
+
+class User <<Collection MongoDB: users>> {
+  + _id : ObjectId
+  + matricule : String {unique, index}
+  + nom : String
+  + prenom : String
+  + filiere : String
+  + classe : String
+  + passwordHash : String
+  + role : RoleUtilisateur
+  + mustChangePassword : Boolean
+  + createdAt : Date
+  --
+  + verifierMotDePasse(mdp) : Boolean
+}
+
+class Election <<Collection MongoDB: elections>> {
+  + _id : ObjectId
+  + titre : String
+  + description : String
+  + dateDebut : Date
+  + dateFin : Date
+  + statut : StatutScrutin {index}
+  + eligibilite : Object
+  + resultsPublished : Boolean
+  + createdAt : Date
+}
+
+class Candidate <<Collection MongoDB: candidates>> {
+  + _id : ObjectId
+  + electionId : ObjectId {ref: Election}
+  + nom : String
+  + photo : String
+  + programme : String
+}
+
+class Voter <<Collection MongoDB: voters>> {
+  + _id : ObjectId
+  + electionId : ObjectId {ref: Election}
+  + userId : ObjectId {ref: User}
+  + createdAt : Date
+  --
+  .. Index composé unique ..
+  {index: electionId + userId}
+}
+
+class Vote <<Collection MongoDB: votes>> {
+  + _id : ObjectId
+  + electionId : ObjectId {ref: Election}
+  + candidateId : ObjectId {ref: Candidate}
+  + createdAt : Date
+  --
+  .. Sécurité & Anonymat ..
+  [AUCUNE RÉFÉRENCE À USER_ID]
+}
+
+class AuditLog <<Collection MongoDB: auditLogs>> {
+  + _id : ObjectId
+  + action : String
+  + auteur : ObjectId {ref: User}
+  + details : Object
+  + createdAt : Date
+}
+
+' Relations entre collections
+Election "1" *-- "0..*" Candidate : contient >
+Election "1" o-- "0..*" Voter : enregistre l'émargement >
+User "1" o-- "0..*" Voter : a émargé pour >
+
+Election "1" o-- "0..*" Vote : recueille les bulletins >
+Candidate "1" o-- "0..*" Vote : reçoit les suffrages >
+
+User "1" o-- "0..*" AuditLog : est l'auteur de >
+
+note bottom of Voter
+  <b>Rôle clé NoSQL : Émargement</b>
+  L'index composé unique (electionId + userId)
+  garantit l'impossibilité physique du double vote.
+end note
+
+note bottom of Vote
+  <b>Rôle clé NoSQL : Urne Anonyme</b>
+  Ne contient JAMAIS l'identifiant du votant.
+  Garantit le secret absolu du scrutin.
+end note
+
+@enduml

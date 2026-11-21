@@ -1,0 +1,56 @@
+@startuml
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam roundcorner 8
+
+actor "Étudiant EMSI" as Student #E8F5E9
+actor "Administrateur" as Admin #E3F2FD
+
+rectangle "Système de Vote en Ligne EMSI" {
+
+  ' Authentification & Profil
+  usecase "S'authentifier (Matricule + MDP)" as UC_Login
+  usecase "Changer le mot de passe initial\n(Obligatoire à la 1ère connexion)" as UC_ChangePwd
+  usecase "Se déconnecter" as UC_Logout
+
+  ' Espace Étudiant
+  usecase "Consulter les scrutins éligibles\n(selon filière & classe)" as UC_ViewElections
+  usecase "Voter pour un candidat\n(Vote unique & anonyme)" as UC_Vote
+  usecase "Vérifier la non-duplication\ndu vote (Index Unique)" as UC_CheckVoter
+  usecase "Consulter les résultats publiés" as UC_ViewResults
+
+  ' Espace Administrateur
+  usecase "Gérer les étudiants" as UC_ManageUsers
+  usecase "Importer les étudiants par fichier CSV" as UC_ImportCSV
+  usecase "Gérer les scrutins\n(Créer, Ouvrir, Clore)" as UC_ManageElections
+  usecase "Gérer les candidats" as UC_ManageCandidates
+  usecase "Suivre le taux de participation\nen temps réel" as UC_TrackParticipation
+  usecase "Publier les résultats du scrutin" as UC_PublishResults
+  usecase "Consulter le journal d'audit" as UC_AuditLogs
+}
+
+' Relations Étudiant
+Student --> UC_Login
+Student --> UC_Logout
+Student --> UC_ViewElections
+Student --> UC_Vote
+Student --> UC_ViewResults
+
+' Relations Admin
+Admin --> UC_Login
+Admin --> UC_Logout
+Admin --> UC_ManageUsers
+Admin --> UC_ManageElections
+Admin --> UC_ManageCandidates
+Admin --> UC_TrackParticipation
+Admin --> UC_PublishResults
+Admin --> UC_AuditLogs
+
+' Inclusions et Extensions
+UC_Login <.. UC_ChangePwd : <<extend>>\n(si mustChangePassword == true)
+UC_ManageUsers <.. UC_ImportCSV : <<extend>>
+UC_Vote ..> UC_CheckVoter : <<include>>
+
+@enduml
